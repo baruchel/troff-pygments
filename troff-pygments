@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+
+import re
+import argparse
+import sys
+from pygments import highlight
+import pygments.lexers
+from pygments.formatter import Formatter
+
+class TroffFormatter(Formatter):
+
+    def __init__(self, **options):
+        Formatter.__init__(self, **options)
+
+        # create a dict of (start, end) tuples that wrap the
+        # value of a token so that we can use it in the format
+        # method later
+        self.styles = {}
+
+        # we iterate over the `_styles` attribute of a style item
+        # that contains the parsed style values.
+        for token, style in self.style:
+            start = end = ''
+            # a style item is a tuple in the following form:
+            # colors are readily specified in hex: 'RRGGBB'
+            if style['color']:
+                c = style['color']
+                c1 = float(int(c[:2], 16)) / 255.
+                c2 = float(int(c[2:4], 16)) / 255.
+                c3 = float(int(c[4:], 16)) / 255.
+                start += '\\X\'SetColor: %f %f %f rgb\'' % (c1, c2, c3)
+                end += '\\X\'SetColor: 0 0 0 rgb\''
+            if style['bold'] and style['italic']:
+                start += '\\f(BI'
+                end += '\\fR'
+            elif style['bold']:
+                start += '\\fB'
+                end += '\\fR'
+            elif style['italic']:
+                start += '\\fI'
+                end += '\\fR'
+            #else:
+            #    start += '\\fR'
+            #if style['underline']:
+            #    No easy solution in Troff
+            self.styles[token] = (start, end)
+
+    def format(self, tokensource, outfile):
+        # lastval is a string we use for caching
+        # because it's possible that an lexer yields a number
+        # of consecutive tokens with the same token type.
+        # to minimize the size of the generated html markup we
+        # try to join the values of same-type tokens here
+        lastval = ''
+        lasttype = None
+
+        # wrap the whole output between .nf and .fi
+        outfile.write('.nf\n')
+
+        for ttype, value in tokensource:
+            # if the token type doesn't exist in the stylemap
+            # we try it with the parent of the token type
+            # eg: parent of Token.Literal.String.Double is
+            # Token.Literal.String
+            value = value.replace("\\","\\\\")
+            if len(value)>0 and value[0] == ".":
+              value = "\\&" + value
+            while ttype not in self.styles:
+                ttype = ttype.parent
+            if ttype == lasttype:
+                # the current token type is the same of the last
+                # iteration. cache it
+                lastval += value
+            else:
+                # not the same token as last iteration, but we
+                # have some data in the buffer. wrap it with the
+                # defined style and write it to the output file
+                if lastval:
+                    stylebegin, styleend = self.styles[lasttype]
+                    outfile.write(stylebegin + lastval.encode("utf-8")
+                      + styleend)
+                # set lastval/lasttype to current values
+                lastval = value
+                lasttype = ttype
+
+        # if something is left in the buffer, write it to the
+        # output file, then switch back to .fi
+        if lastval:
+            stylebegin, styleend = self.styles[lasttype]
+            outfile.write(stylebegin + lastval.encode("utf-8")
+              + styleend)
+        outfile.write('.fi')
+
+parser = argparse.ArgumentParser()
+parser.add_argument('filename', nargs='?')
+parser.add_argument('--style', '-s', nargs=1,
+                   help='Select a style from Pygments')
+
+args = parser.parse_args()
+
+if args.filename:
+  f = open(args.filename, mode='rb')
+else:
+  f = sys.stdin
+
+if args.style:
+  tf = TroffFormatter(style=args.style[0])
+else:
+  tf = TroffFormatter()
+
+s1 = re.compile("^\. *PYGMENTS1")
+s2 = re.compile("^\. *PYGMENTS2")
+
+syntax = False
+code = ''
+lexer = None
+lineno = 0
+for l in f:
+  lineno += 1
+  if syntax:
+    if s2.match(l):
+      print highlight(code, lexer, tf)
+      sys.stdout.write(l)
+      syntax = False
+      lexer = None
+      code = ''
+    else:
+      code += l
+  elif s1.match(l):
+    sys.stdout.write(l)
+    l = l.rstrip('\n')
+    m = re.search('^\. *PYGMENTS1 *([^ ]+) *$',l)
+    if m:
+      lexername = m.group(1)
+      try:
+        lexer = eval("pygments.lexers." + m.group(1)+'()')
+        syntax = True
+      except:
+        sys.stderr.write("Warning: lexer instantiation failed at line "
+          + str(lineno) + "\n")
+    else:
+      sys.stderr.write("Warning: no lexer name found at line "
+        + str(lineno) + "\n")
+  else:
+    sys.stdout.write(l)
+
+if args.filename:
+  f.close()
