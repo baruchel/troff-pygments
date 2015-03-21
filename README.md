@@ -20,15 +20,15 @@ The preprocessor adds two new macros which are `.PYGMENTS1` and `.PYGMENTS2` (fo
 
 The initial macro `.PYGMENTS1' must have exactly one argument which is the name of a Lexer from the Pygments package. For instance:
 
-    .SYNTAX1 PythonLexer
+    .PYGMENTS1 PythonLexer
     print "test"
-    .SYNTAX2
+    .PYGMENTS2
 
 The list of available lexers can be found at (http://pygments.org/docs/lexers/).
 
 If needed, the two macros may also be written with some indentation:
 
-    .  SYNTAX1
-    .  SYNTAX2
+    .  PYGMENTS1 PythonLexer
+    .  PYGMENTS2
 
 The whole code may contain escape characters or have lines starting with a dot with no trouble.
