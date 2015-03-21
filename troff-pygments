@@ -31,14 +31,14 @@ class TroffFormatter(Formatter):
                 start += '\\X\'SetColor: %f %f %f rgb\'' % (c1, c2, c3)
                 end += '\\X\'SetColor: 0 0 0 rgb\''
             if style['bold'] and style['italic']:
-                start += '\\f(BI'
-                end += '\\fR'
+                start += '\\f[CBI]'
+                end += '\\f(CR'
             elif style['bold']:
-                start += '\\fB'
-                end += '\\fR'
+                start += '\\f(CB'
+                end += '\\f(CR'
             elif style['italic']:
-                start += '\\fI'
-                end += '\\fR'
+                start += '\\f(CI'
+                end += '\\f(CR'
             #else:
             #    start += '\\fR'
             #if style['underline']:

@@ -16,7 +16,9 @@ Syntax highlighting pre-processor for Heirloom Troff (written in Python language
 If no filename is provided, standard input is read.
 
 ## Troff macros
-The preprocessor adds two new macros which are `.PYGMENTS1` and `.PYGMENTS2` (for enclosing a block to be highlighted). Both commands are kept by the preprocessor and they should be redefined by the user (for selecting a font for instance); however the user doesn't have to put the `.nf` and `.fi` commands wich are added by the preprocessor.
+The preprocessor adds two new macros which are `.PYGMENTS1` and `.PYGMENTS2` (for enclosing a block to be highlighted). Both commands are kept by the preprocessor and they may be redefined by the user (for changing the indentation for instance); however the user doesn't have to put the `.nf` and `.fi` commands wich are added by the preprocessor.
+
+The preprocessor uses the four following names for the fonts: `CR`, `CB`, `CI` and `CBI` and it is up to the user to load the fonts to be used.
 
 The initial macro `.PYGMENTS1' must have exactly one argument which is the name of a Lexer from the Pygments package. For instance:
 
